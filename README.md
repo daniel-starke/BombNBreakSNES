@@ -116,12 +116,12 @@ The following table shows how the tile maps, tiles and palettes are being used (
 |p12.chr     |p12Tiles, p12TilesEnd     |tiles     |Player 1 and 2 sprite tiles.                       |
 |p12.pal     |p12Pal, p12PalEnd         |palettes  |Player 1 (#4) and 2 (#5) sprite palettes.          |
 
-`options.map` and `field.map` are using the tiles and palette of `fg2.chr` with priority flag set to 1.  
+`options.map` and `field.map` are using the tiles and palette of `fg2.chr` with priority flag set to 1.  
 `fg2.chr` also contains the ASCII characters used to display the numeric values on the option and game screen.
 
 ## Time Handling
 
-NTSC (60 Hz) or PAL (50 Hz) is being selected via compile switch. Knowing their framerate it is easy
+NTSC (60 Hz) or PAL (50 Hz) is being selected via compile switch. Knowing their frame rate it is easy
 to use VBlanks to count the time. `FP10HZ` is being defined accordingly to simplify this task. The macro
 holds the number of frames per 1/10s. All animations are based on this frequency of 10 Hz.  
 The time base is being used in `clickDelay()` to avoid fast value change in the option screen and
