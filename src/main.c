@@ -1493,7 +1493,7 @@ static void handlePlayer(const uint16_t pad, tPlayer * player) {
 					break;
 				}
 			}
-			ASSERT(b);
+			ASSERT(b); /* added bomb to list? */
 			ASSERT_ARY_IDX(player->bombList, player->lastBombIdx);
 		}
 	}
@@ -1644,11 +1644,29 @@ static bool handleExplodedField(const uint8_t attr, const uint8_t part, const ui
 		}
 		return true;
 	case FTYPE_FLAME:
-		/* crossing other explosion */
+		/* overlapping explosions */
 		ASSERT_ARY_IDX(aniField, m);
-		attrField = gameFieldHigh + m;
-		setFieldAttr(attrField, TILE_ATTR(0, 0, 1, 3));
-		setField(field, FIELD_EXPL_MID + (2 * (4 - aniField[m])));
+		if (part == FIELD_EXPL_PART_X) {
+			/* horizontal explosion */
+			if (*field >= FIELD_EXPL_PART_Y) {
+				/* crossing vertical explosion */
+				goto explosionCross;
+			} else if (*field >= FIELD_EXPL_END_X) {
+				/* hits end of horizontal explosion */
+				j2 = FIELD_EXPL_PART_X;
+				goto explosionExtend;
+			}
+		} else {
+			/* vertical explosion */
+			if (*field < FIELD_EXPL_PART_Y) {
+				/* crossing horizontal explosion */
+				goto explosionCross;
+			} else if (*field >= FIELD_EXPL_END_Y) {
+				/* hits end of vertical explosion */
+				j2 = FIELD_EXPL_PART_Y;
+				goto explosionExtend;
+			}
+		}
 		return true;
 	case FTYPE_PU_BOMB:
 	case FTYPE_PU_RANGE:
@@ -1701,11 +1719,32 @@ static bool handleExplodedField(const uint8_t attr, const uint8_t part, const ui
 		break;
 	}
 	return false;
+explosionCross:
+	aniField[m] = 4;
+	ttlField[m] = EXPLOSION_ANIMATION;
+	attrField = gameFieldHigh + m;
+	setFieldAttr(attrField, TILE_ATTR(0, 0, 1, 3));
+	setField(field, FIELD_EXPL_MID + (2 * (uint8_t)(4 - aniField[m])));
+	return true;
+explosionExtend:
+	aniField[m] = 4;
+	ttlField[m] = EXPLOSION_ANIMATION;
+	attrField = gameFieldHigh + m;
+	setFieldAttr(attrField, attr);
+	j2 = j2 + (2 * (uint8_t)(4 - aniField[m]));
+	if (attr & 0x80) {
+		setFieldFlippedY(field, j2);
+	} else if (attr & 0x40) {
+		setFieldFlippedX(field, j2);
+	} else {
+		setField(field, j2);
+	}
+	return true;
 }
 
 
 /**
- * Handles the explosion of a bomb at the given bomb entry.
+ * Handles the explosion of a bomb at the given bomb list entry.
  *
  * @param[in] range - explosion range
  * @param[in,out] bombEntry - player bomb list entry pointer

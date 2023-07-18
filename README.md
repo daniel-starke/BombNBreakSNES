@@ -3,6 +3,8 @@
 40 years since the NES came out. Celebrating this anniversary and as I found a nice framework to code for
 the SNES in C I tried to write a little game myself.
 
+<img src="doc/screenshot.png" alt="game screenshot">
+
 # Building
 
 Dependencies:
@@ -106,6 +108,7 @@ The following table shows how the tile maps, tiles and palettes are being used (
 |bg1.chr     |bg1Tiles, bg1TilesEnd     |tiles     |Title screen background tiles.                     |
 |bg1.map     |bg1Map, bg1MapEnd         |tile map  |Title screen background map (title/start).         |
 |bg1.pal     |bg1Pal, bg1PalEnd         |palette   |Title screen background palette number #1.         |
+|bg2.map     |bg2Map, bg2MapEnd         |tile map  |Game screen background map.                        |
 |fg1.chr     |fg1Tiles, fg1TilesEnd     |tiles     |Title screen foreground tiles.                     |
 |fg1.map     |fg1Map, fg1MapEnd         |tile map  |Title screen foreground map (credits).             |
 |fg1.pal     |fg1Pal, fg1PalEnd         |palette   |Title screen foreground palette number #2.         |
@@ -121,10 +124,10 @@ The following table shows how the tile maps, tiles and palettes are being used (
 
 ## Time Handling
 
-NTSC (60 Hz) or PAL (50 Hz) is being selected via compile switch. Knowing their frame rate it is easy
+NTSC (60 Hz) or PAL (50 Hz) is being selected via build switch. Knowing their frame rate it is easy
 to use VBlanks to count the time. `FP10HZ` is being defined accordingly to simplify this task. The macro
 holds the number of frames per 1/10s. All animations are based on this frequency of 10 Hz.  
-The time base is being used in `clickDelay()` to avoid fast value change in the option screen and
+The time base is being used in `clickDelay()` to avoid fast value changes in the option screen and
 for the animations and game time handling in `handleGame()`. The speed of the slide-in/slide-out animation
 is determined from the value of `SLIDE_SPEED` which is also derived from the video mode.  
 See also the global variables `framesUntil10Hz`, `counter10Hz` and `untilSecond` used for global time management.
@@ -135,9 +138,9 @@ Collision detection is simply done via bounding box using the 4 corners of the p
 `P_LEFT`, `P_RIGHT`, `P_TOP` and `P_BOTTOM` with `P_MID_X` and `P_MID_Y` forming its center used for bomb
 placement. It is bing checked whether one of these corners falls within a given game field or not.
 To detect whether the most recently dropped bomb field has been left, it is being checked whether the
-16x16 fields around these for corners contain the dropped bomb field or not.
-No hitmask or other technique is being used. Most of the events are being tested using the game field
-coordinates.
+16x16 fields around these four corners contain the dropped bomb field or not.
+No hitmask or other technique is being used. Most of the collision events are being tested using the game
+field coordinates.
 
 ## Variable Storage
 
@@ -164,10 +167,16 @@ screen handlers followed by a call to `WaitForVBlank()` to process the next fram
 places in the game and can be disabled via makefile parameter `NDEBUG=1`.
 
 The software breakpoints are triggered via opcode `BRK`. Previously, the accumulator is set to the low word
-and the x register to the high word of the address of the assertions string.
+and the x register to the high word of the address of the assertion string.
 
-Use emulators like [bsnes](https://github.com/bsnes-emu/bsnes) to debug with software breakpoints and check
+Use an emulator like [bsnes](https://github.com/bsnes-emu/bsnes) to debug with software breakpoints and check
 the memory for the set address to see the failing assertion message.
+
+# Known Issues
+
+- Enabling the debug facility generates too much code (more than 1 memory bank is used). This breaks the
+  game in various places probably due to missing bank switches? E.g. the 3rd and 4th call to `writeVramNumWithUnit()`
+  in `updateOptionsScreen()` passes a wrong VRAM address, if `NDEBUG=1` is not given.
 
 # License
 
