@@ -3,12 +3,16 @@
 * @author Daniel Starke
 * @copyright Copyright 2023 Daniel Starke
 * @date 2023-07-16
-* @version 2023-07-16
+* @version 2023-07-21
 */
 #ifndef _DEBUG_H_
 #define _DEBUG_H_
 
 #include <stddef.h>
+
+
+/** Found in `debug.asm`. */
+extern const char * debugMessage;
 
 
 /** Concatenates two tokens. */
@@ -25,10 +29,10 @@
 /**
  * Calls the debugger with the given message.
  * 
- * @param[in] x - message to pass
+ * @param[in] x - debug message to set
  */
 #define DEBUG_MSG(x) \
-	debugBreak(PP_STR(__FILE__) ":" PP_STR(__LINE__) ":" x)
+	{debugMessage = PP_STR(__FILE__) ":" PP_STR(__LINE__) ":" x; debugBreak(); }
 
 
 /**
@@ -57,12 +61,9 @@
 
 
 /**
- * Calls the break command. A message can be passed
- * to identify the source/cause for this command.
- * 
- * @param[in] msg - associated message
+ * Calls the break command.
  */
-void debugBreak(const char * msg);
+void debugBreak();
 
 
 #endif /* _DEBUG_H_ */

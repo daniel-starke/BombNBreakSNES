@@ -2,7 +2,12 @@
 ; @author Daniel Starke
 ; @copyright Copyright 2023 Daniel Starke
 ; @date 2023-07-16
-; @version 2023-07-16
+; @version 2023-07-21
+
+.RAMSECTION ".reg_debug7e" BANK $7E
+; extern const char * debugMessage;
+debugMessage:     DSW 2 ; debug message
+.ends
 
 .include "hdr.asm"
 .accu 16
@@ -11,20 +16,10 @@
 
 
 .section ".debugBreak_text" superfree
-; void debugBreak(const char * msg);
+; void debugBreak();
 debugBreak:
 	php                ; push processor flags to stack (1 byte)
-	                   ; stack:
-	                   ; 5 | 4 byte message
-	                   ; 1 | 4 byte return address
-	                   ; 0 | 1 byte processor flags
-
-	rep #$30           ; 16-bit accumulator and index registers
-	lda 7,s            ; load source message high word
-	tax                ; transfer accumulator to x register
-	lda 5,s            ; load source message low word
-	brk                ; software breakpoint (message in X:A)
-
+	brk                ; software breakpoint (message in [debugMessage] if called via ASSERT())
 	plp                ; pull processor flags from stack (1 byte)
 	rtl                ; return from subroutine long
 

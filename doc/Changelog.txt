@@ -4,8 +4,10 @@ M.N.P
 | +---- minor: increased if syntax/semantic breaking changes were applied
 +------ major: increased if elementary changes (from user's point of view) were made
 
-1.0.1 (2023-07-17)
+1.0.1 (2023-07-21)
+ - changed debugBreak and DEBUG_MSG to set the global variable debugMessage instead of the registers X and A
  - fixed wrong explosion center tile for extending explosion intersection (i.e. same direction)
+ - fixed static const variable declaration format to satisfy constify
 
 1.0.0 (2023-07-17)
  - first release
