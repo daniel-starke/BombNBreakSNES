@@ -4,10 +4,13 @@ M.N.P
 | +---- minor: increased if syntax/semantic breaking changes were applied
 +------ major: increased if elementary changes (from user's point of view) were made
 
-1.0.1 (2023-07-21)
+1.0.1 (2023-07-28)
  - changed debugBreak and DEBUG_MSG to set the global variable debugMessage instead of the registers X and A
+ - changed to pvsneslib and tcc develop branch to properly support const variable to ROM
+ - changed bin/BombNBrake.sym format for direct use in BSNES via scripts/to-bsnes-sym.py
  - fixed wrong explosion center tile for extending explosion intersection (i.e. same direction)
- - fixed static const variable declaration format to satisfy constify
+ - fixed updateOptionsScreen() writing to VRAM outside of VBlank in case of NDEBUG=0
+ - fixed duplicate section name issue in main.o
 
 1.0.0 (2023-07-17)
  - first release

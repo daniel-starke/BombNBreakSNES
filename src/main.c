@@ -3,7 +3,7 @@
 * @author Daniel Starke
 * @copyright Copyright 2023 Daniel Starke
 * @date 2023-07-03
-* @version 2023-07-17
+* @version 2023-07-28
 *
 * Bomb'n'Break for SNES.
 */
@@ -497,8 +497,7 @@ extern uint8_t p12Pal[], p12PalEnd[];
 
 
 /* global constants */
-static const VoidFn screenHandler[] =
-{
+static const VoidFn screenHandler[] = {
 	&handleTitle,
 	&handleOptions,
 	&handleGame,
@@ -506,8 +505,7 @@ static const VoidFn screenHandler[] =
 	&handleWinner
 };
 
-static const uint8_t fg2NumText[] =
-{
+static const uint8_t fg2NumText[] = {
 	CH_0,
 	CH_1,
 	CH_2,
@@ -520,16 +518,14 @@ static const uint8_t fg2NumText[] =
 	CH_9
 };
 
-static const uint8_t optionBelow[] =
-{
+static const uint8_t optionBelow[] = {
 	O_DROPRATE,
 	O_BOMBS,
 	O_RANGE,
 	O_RANGE
 };
 
-static const uint8_t optionAbove[] =
-{
+static const uint8_t optionAbove[] = {
 	O_TIME,
 	O_TIME,
 	O_DROPRATE,
@@ -540,8 +536,7 @@ static const uint8_t optionAbove[] =
  * Contains the `gameFieldLow` and `aniField` index for each game
  * board field (upper left corner) in the game which can change.
  */
-static const uint16_t fieldElemIndex[] =
-{
+static const uint16_t fieldElemIndex[] = {
 	/* blocks left untouched during field initialization (see `FIRST_FLEX_FIELD`) */
 	TILE_OFFSET_1( 2,  4),
 	TILE_OFFSET_1( 2,  6),
@@ -676,8 +671,7 @@ static const uint16_t fieldElemIndex[] =
 /**
  * Maps the animation frame number to the player sprite tile index.
  */
-static const uint8_t playerTileMap[] =
-{
+static const uint8_t playerTileMap[] = {
 	0x00, 0x02, 0x04, 0x06, 0x08,
 	0x0A, 0x0C, 0x0E, 0x20
 };
@@ -687,8 +681,7 @@ static const uint8_t playerTileMap[] =
  * Maps the delta movement to the corresponding animation frame.
  * Index = ((dx + 1) << 2) + dy + 1
  */
-static const tMoveAnimation moveAni[] =
-{
+static const tMoveAnimation moveAni[] = {
 	{ACT_UP,   0}, /* -1,-1 */
 	{ACT_SIDE, 1}, /* -1, 0 */
 	{ACT_DOWN, 0}, /* -1, 1 */
@@ -707,8 +700,7 @@ static const tMoveAnimation moveAni[] =
  * Maps the foreground 2 tile index to a field type enumeration value
  * for faster categorization.
  */
-static const uint8_t fTypeMap[] =
-{
+static const uint8_t fTypeMap[] = {
 	FTYPE_EMPTY, /* 0x00 */
 	FTYPE_EMPTY, /* 0x01 */
 	FTYPE_EMPTY, /* 0x02 */
@@ -1127,6 +1119,7 @@ static void updateOptionsScreen(void) {
 	WaitForVBlank(); /* ensure access to VRAM */
 	writeVramNumWithUnit(WORD_OFFSET(MAP_VRAM_FG + MAP_PAGE_SIZE) + TILE_OFFSET(10, 11), 5, maxTime,  CH_s,       (option == O_TIME)     ? CH_less : CH_space);
 	writeVramNumWithUnit(WORD_OFFSET(MAP_VRAM_FG + MAP_PAGE_SIZE) + TILE_OFFSET(10, 14), 5, dropRate, CH_percent, (option == O_DROPRATE) ? CH_less : CH_space);
+	WaitForVBlank(); /* ensure access to VRAM */
 	writeVramNumWithUnit(WORD_OFFSET(MAP_VRAM_FG + MAP_PAGE_SIZE) + TILE_OFFSET(10, 17), 3, maxBombs, CH_x,       (option == O_BOMBS)    ? CH_less : CH_space);
 	writeVramNumWithUnit(WORD_OFFSET(MAP_VRAM_FG + MAP_PAGE_SIZE) + TILE_OFFSET(10, 20), 3, maxRange, CH_x,       (option == O_RANGE)    ? CH_less : CH_space);
 }

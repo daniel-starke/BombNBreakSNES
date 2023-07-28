@@ -5,8 +5,8 @@ endif
 CC  = $(PVSNESLIB_HOME)/devkitsnes/bin/816-tcc
 AS  = $(PVSNESLIB_HOME)/devkitsnes/bin/wla-65816
 LD  = $(PVSNESLIB_HOME)/devkitsnes/bin/wlalink
-OPT = $(PVSNESLIB_HOME)/devkitsnes/bin/816-opt.py
-CTF = $(PVSNESLIB_HOME)/devkitsnes/bin/constify
+OPT = $(PVSNESLIB_HOME)/devkitsnes/tools/816-opt
+SYM = scripts/to-bsnes-sym.py
 
 GFXCONV = $(PVSNESLIB_HOME)/devkitsnes/tools/gfx2snes
 SMCONV  = $(PVSNESLIB_HOME)/devkitsnes/tools/smconv
@@ -18,7 +18,7 @@ TMXCONV = $(PVSNESLIB_HOME)/devkitsnes/tools/tmx2snes
 CFLAGS += -I$(PVSNESLIB_HOME)/pvsneslib/include -I$(PVSNESLIB_HOME)/devkitsnes/include -Isrc -Ibin
 
 GCC_ANALYZER = gcc -Wall -Wextra -Wshadow -Wformat -Wconversion -Wno-int-conversion -fanalyzer -nostdinc -isystem $(PVSNESLIB_HOME)/pvsneslib/include -isystem $(PVSNESLIB_HOME)/devkitsnes/include -Isrc -Ibin -D__int8_t_defined
-# using AVR too simulate an 8-bit CPU architecture
+# using AVR to simulate an 8-bit CPU architecture
 CLANG_FLAGS = --target=avr -mmcu=atmega16 -Wall -Wextra -Wshadow -Wformat -Wconversion -nostdinc -isystem $(PVSNESLIB_HOME)/pvsneslib/include -isystem $(PVSNESLIB_HOME)/devkitsnes/include -Isrc -Ibin -D__int8_t_defined
 CLANG_ANALYZER = clang-tidy -checks=-*,clang-analyzer-*
 
@@ -114,8 +114,10 @@ bin/$(ROMNAME).sfc: $(OBJ)
 		echo $$file | $(REPLPATH) >> bin/linkfile; \
 	done
 	# link
-	$(LD) -d -s -v -A bin/linkfile $(@)
+	$(LD) -d -S -v -A bin/linkfile $(@)
+	# convert symbol file for bsnes
 	@sed -i 's/://' bin/$(ROMNAME).sym
+	$(SYM) bin/$(ROMNAME).sym
 
 .PHONY: gcc-analysis
 gcc-analyzer: $(MAIN_DEP)
@@ -130,10 +132,12 @@ clang-analyzer: $(MAIN_DEP)
 bin/%.o: src/%.c
 	# compile
 	$(CC) $(CFLAGS) -Wall -Wunsupported -c $(<) -o bin/$(*).ps
+	# fix section names
+	sed -i 's/.text_0x/.text_$(*)_/g' bin/$(*).ps
+	sed -i 's/.rodata/.rodata_$(*)/g' bin/$(*).ps
+	sed -i 's/".bss"/".bss_$(*)"/g' bin/$(*).ps
 	# optimize
-	$(OPT) bin/$(*).ps >bin/$(*).asp
-	# move constants
-	$(CTF) $(<) bin/$(*).asp bin/$(*).asm
+	$(OPT) bin/$(*).ps >bin/$(*).asm
 	# build
 	$(AS) $(AS_FLAGS) -Ibin -Isrc -d -s -x -o $(@) bin/$(*).asm
 

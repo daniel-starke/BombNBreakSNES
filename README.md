@@ -145,7 +145,7 @@ field coordinates.
 ## Variable Storage
 
 Most of the variables are being stored as global variables due to the fact that the used CPU provides
-no efficient means to access the stack. Especially, if the stack stores multiple 100 bytes or more.
+only a 256 byte stack and the compiler offers no software stack implementation.
 Some of these variables are used as loop invariant or in place of local variables. Care has been taken
 that no inner function accidentally overwrites global variables used by the calling functions.
 Global variables in question are: `i`, `j`, `j2`, `k`, `m`, `dx`, `dy`, `ds`, `x`, `y`, `x1`, `y1`,
@@ -171,12 +171,6 @@ and the x register to the high word of the address of the assertion string.
 
 Use an emulator like [bsnes](https://github.com/bsnes-emu/bsnes) to debug with software breakpoints and check
 the memory for the set address to see the failing assertion message.
-
-# Known Issues
-
-- Enabling the debug facility generates too much code (more than 1 memory bank is used). This breaks the
-  game in various places probably due to missing bank switches? E.g. the 3rd and 4th call to `writeVramNumWithUnit()`
-  in `updateOptionsScreen()` passes a wrong VRAM address, if `NDEBUG=1` is not given.
 
 # License
 
