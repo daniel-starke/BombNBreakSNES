@@ -166,11 +166,11 @@ screen handlers followed by a call to `WaitForVBlank()` to process the next fram
 `debug.h` contains functions to create software breakpoints with assertions. These are used in various
 places in the game and can be disabled via makefile parameter `NDEBUG=1`.
 
-The software breakpoints are triggered via opcode `BRK`. Previously, the accumulator is set to the low word
-and the x register to the high word of the address of the assertion string.
+The software breakpoints are triggered via opcode `BRK`. Previously, the global pointer `debugMessage`
+is set to point to the assertion string.
 
-Use an emulator like [bsnes](https://github.com/bsnes-emu/bsnes) to debug with software breakpoints and check
-the memory for the set address to see the failing assertion message.
+Use an emulator like [bsnes](https://github.com/bsnes-emu/bsnes) to debug with software breakpoints and
+check the memory for the set address to see the failing assertion message.
 
 # License
 
