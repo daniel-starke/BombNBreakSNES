@@ -37,7 +37,7 @@
   COUNTRY $02                   ; $01= U.S., $00=Japan, $02=Europe, $03=Sweden/Scandinavia, $04=Finland, $05=Denmark, $06=France, $07=Netherlands, $08=Spain, $09=Germany, $0A=Italy, $0B=China, $0C=Indonesia, $0D=Korea
 .ENDIF
   LICENSEECODE $00              ; Just use $00
-  VERSION $01                   ; $00 = 1.00, $01 = 1.01, etc.
+  VERSION $10                   ; $00 = 1.00, $01 = 1.01, etc.
 .ENDSNES
 
 .SNESNATIVEVECTOR               ; Define Native Mode interrupt vector table

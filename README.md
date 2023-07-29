@@ -172,6 +172,11 @@ is set to point to the assertion string.
 Use an emulator like [bsnes](https://github.com/bsnes-emu/bsnes) to debug with software breakpoints and
 check the memory for the set address to see the failing assertion message.
 
+# Known Issues
+
+Sometimes the game freezes if it was built with `HAS_SFX=1` due to a race condition and/or memory bug in
+the audio driver of pvsneslib. See [issue #226](https://github.com/alekmaul/pvsneslib/issues/226).
+
 # License
 
 All graphics and sounds are licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).  

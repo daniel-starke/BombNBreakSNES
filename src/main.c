@@ -1,12 +1,12 @@
 /**
-* @file main.c
-* @author Daniel Starke
-* @copyright Copyright 2023 Daniel Starke
-* @date 2023-07-03
-* @version 2023-07-28
-*
-* Bomb'n'Break for SNES.
-*/
+ * @file main.c
+ * @author Daniel Starke
+ * @copyright Copyright 2023 Daniel Starke
+ * @date 2023-07-03
+ * @version 2023-07-29
+ *
+ * Bomb'n'Break for SNES.
+ */
 #include <snes.h>
 #include <stdint.h>
 #include <string.h>
@@ -437,6 +437,7 @@ typedef struct {
 	uint8_t x; /**< upper left corner x coordinate (on screen x+8 for easier tile correlation) */
 	uint8_t y; /**< upper left corner y coordinate */
 	uint8_t firstFrame; /**< first 16x16 frame of the sprite (e.g. ACT_DOWN) */
+	uint8_t maxFrame; /**< number of possible animation frames */
 	uint8_t curFrame; /**< current animation frame index (0..2) */
 	uint8_t flipX; /**< flip sprite horizontal? 0 or 1. */
 	uint8_t moveAniIdx; /**< used index in `moveAni` */
@@ -453,8 +454,9 @@ typedef struct {
 
 /** Structure holding the first animation frame index and horizontal mirroring information. */
 typedef struct {
-	uint8_t firstFrame;
-	uint8_t flipX;
+	uint8_t firstFrame; /**< first 16x16 frame of the sprite (e.g. ACT_DOWN) */
+	uint8_t flipX; /**< flip sprite horizontal? 0 or 1. */
+	uint8_t maxFrame; /**< number of possible animation frames */
 } tMoveAnimation;
 
 
@@ -672,8 +674,9 @@ static const uint16_t fieldElemIndex[] = {
  * Maps the animation frame number to the player sprite tile index.
  */
 static const uint8_t playerTileMap[] = {
-	0x00, 0x02, 0x04, 0x06, 0x08,
-	0x0A, 0x0C, 0x0E, 0x20
+	0x00, 0x02, 0x04, /* ACT_DOWN */
+	0x06, 0x08, 0x0A, /* ACT_UP */
+	0x0C, 0x0E, 0x0C, 0x20  /* ACT_SIDE */
 };
 
 
@@ -682,17 +685,17 @@ static const uint8_t playerTileMap[] = {
  * Index = ((dx + 1) << 2) + dy + 1
  */
 static const tMoveAnimation moveAni[] = {
-	{ACT_UP,   0}, /* -1,-1 */
-	{ACT_SIDE, 1}, /* -1, 0 */
-	{ACT_DOWN, 0}, /* -1, 1 */
-	{ACT_DOWN, 0}, /* invalid */
-	{ACT_UP,   0}, /*  0,-1 */
-	{ACT_DOWN, 0}, /*  0, 0 */
-	{ACT_DOWN, 0}, /*  0, 1 */
-	{ACT_DOWN, 0}, /* invalid */
-	{ACT_UP,   0}, /*  1,-1 */
-	{ACT_SIDE, 0}, /*  1, 0 */
-	{ACT_DOWN, 0}  /*  1, 1 */
+	{ACT_UP,   0, 3}, /* -1,-1 */
+	{ACT_SIDE, 1, 4}, /* -1, 0 */
+	{ACT_DOWN, 0, 3}, /* -1, 1 */
+	{ACT_DOWN, 0, 3}, /* invalid */
+	{ACT_UP,   0, 3}, /*  0,-1 */
+	{ACT_DOWN, 0, 3}, /*  0, 0 */
+	{ACT_DOWN, 0, 3}, /*  0, 1 */
+	{ACT_DOWN, 0, 3}, /* invalid */
+	{ACT_UP,   0, 3}, /*  1,-1 */
+	{ACT_SIDE, 0, 4}, /*  1, 0 */
+	{ACT_DOWN, 0, 3}  /*  1, 1 */
 };
 
 
@@ -925,7 +928,10 @@ static uint8_t untilSecond;          /* 10Hz ticks until next full second */
 static bool refreshGameScreenLow;    /* need low byte game screen low bytes refresh? */
 static bool refreshGameScreenHigh;   /* need low byte game screen high bytes refresh? */
 static bool refreshSprites;          /* need to update the sprite object attribute data? */
+#ifdef HAS_SFX
+static uint8_t sfx1Playing;          /* number of 1/10s remaining until the sound effect has completed */
 static brrsamples sfx1Sample[1];     /* sound effect sample */
+#endif /* HAS_SFX */
 /* configuration */
 static uint16_t maxTime;
 static uint8_t dropRate, dropRate255;
@@ -997,6 +1003,8 @@ static void writeNumWithUnit(uint16_t index, uint8_t chars, uint16_t value, cons
  */
 static void writeVramNumWithUnit(const uint16_t address, uint8_t chars, uint16_t value, const uint8_t unit, const uint8_t select) {
 	convertNumber(value);
+	/* ensure access to VRAM */
+	WaitForVBlank();
 	/* increment VRAM address after each low byte write (REG_VMDATAL) */
 	REG_VMAIN = 0x00;
 	REG_VMADDLH = address;
@@ -1023,6 +1031,20 @@ static void writeVramNumWithUnit(const uint16_t address, uint8_t chars, uint16_t
 		--chars;
 	}
 }
+
+
+#ifdef HAS_SFX
+/**
+ * Play bomb sound effect.
+ */
+static inline void playSfx1() {
+	if ( sfx1Playing ) {
+		return;
+	}
+	spcPlaySound(0);
+	sfx1Playing = 6; /* x 100ms */
+}
+#endif /* HAS_SFX */
 
 
 /**
@@ -1116,10 +1138,8 @@ static void bgSlideOut(const uint8_t bgNum0, const uint8_t bgNum1, const bool sp
  * Updates the shown configuration values on the options screen.
  */
 static void updateOptionsScreen(void) {
-	WaitForVBlank(); /* ensure access to VRAM */
 	writeVramNumWithUnit(WORD_OFFSET(MAP_VRAM_FG + MAP_PAGE_SIZE) + TILE_OFFSET(10, 11), 5, maxTime,  CH_s,       (option == O_TIME)     ? CH_less : CH_space);
 	writeVramNumWithUnit(WORD_OFFSET(MAP_VRAM_FG + MAP_PAGE_SIZE) + TILE_OFFSET(10, 14), 5, dropRate, CH_percent, (option == O_DROPRATE) ? CH_less : CH_space);
-	WaitForVBlank(); /* ensure access to VRAM */
 	writeVramNumWithUnit(WORD_OFFSET(MAP_VRAM_FG + MAP_PAGE_SIZE) + TILE_OFFSET(10, 17), 3, maxBombs, CH_x,       (option == O_BOMBS)    ? CH_less : CH_space);
 	writeVramNumWithUnit(WORD_OFFSET(MAP_VRAM_FG + MAP_PAGE_SIZE) + TILE_OFFSET(10, 20), 3, maxRange, CH_x,       (option == O_RANGE)    ? CH_less : CH_space);
 }
@@ -1192,6 +1212,7 @@ static void initializeGame(void) {
 	p1.range = p2.range = 1;
 	p1.running = p2.running = 0;
 	p1.firstFrame = p2.firstFrame = ACT_DOWN;
+	p1.maxFrame = p2.maxFrame = 3;
 	p1.curFrame = p2.curFrame = ACT_DOWN;
 	p1.flipX = p2.flipX = 0;
 	p1.moveAniIdx = p2.moveAniIdx = 5;
@@ -1569,6 +1590,7 @@ static void handlePlayer(const uint16_t pad, tPlayer * player) {
 					/* direction changed */
 					ASSERT_ARY_IDX(moveAni, j);
 					player->firstFrame = moveAni[j].firstFrame;
+					player->maxFrame = moveAni[j].maxFrame;
 					player->curFrame = player->firstFrame;
 					player->flipX = moveAni[j].flipX;
 					player->moveAniIdx = j;
@@ -1829,6 +1851,12 @@ void handleGame(void) {
 				refreshGameScreenLow = true;
 			}
 		}
+#ifdef HAS_SFX
+		/* update remaining SFX1 playing time */
+		if ( sfx1Playing ) {
+			--sfx1Playing;
+		}
+#endif /* HAS_SFX */
 		/* update running states */
 		if ( p1.running ) {
 			--p1.running;
@@ -1842,7 +1870,7 @@ void handleGame(void) {
 			if (p1.ttlFrame == 0) {
 				p1.ttlFrame = PLAYER_ANIMATION;
 				++p1.curFrame;
-				if ((p1.curFrame - p1.firstFrame) > 2) {
+				if ((p1.curFrame - p1.firstFrame) >= p1.maxFrame) {
 					p1.curFrame = p1.firstFrame;
 				}
 				refreshSprites = true;
@@ -1854,7 +1882,7 @@ void handleGame(void) {
 			if (p2.ttlFrame == 0) {
 				p2.ttlFrame = PLAYER_ANIMATION;
 				++p2.curFrame;
-				if ((p2.curFrame - p2.firstFrame) > 2) {
+				if ((p2.curFrame - p2.firstFrame) >= p2.maxFrame) {
 					p2.curFrame = p2.firstFrame;
 				}
 				refreshSprites = true;
@@ -1941,7 +1969,7 @@ void handleGame(void) {
 					/* bomb exploded */
 					++p1.bombs;
 #ifdef HAS_SFX
-					spcPlaySound(0);
+					playSfx1();
 #endif /* HAS_SFX */
 					ASSERT(p1.bombs <= p1.maxBombs);
 					handleExplosion(p1.range, p1.bombList + i);
@@ -1966,7 +1994,7 @@ void handleGame(void) {
 					/* bomb exploded */
 					++p2.bombs;
 #ifdef HAS_SFX
-					spcPlaySound(0);
+					playSfx1();
 #endif /* HAS_SFX */
 					ASSERT(p2.bombs <= p2.maxBombs);
 					handleExplosion(p2.range, p2.bombList + i);
@@ -2100,8 +2128,8 @@ void handleWinner(void) {
  * Main entry point.
  */
 int main(void) {
-	/* initialize sound engine (slow) */
 #if defined(HAS_BGM) || defined(HAS_SFX)
+	/* initialize sound engine (slow) */
 	spcBoot();
 #endif /* HAS_BGM or HAS_SFX */
 
@@ -2115,18 +2143,20 @@ int main(void) {
 #endif /* HAS_BGM */
 
 #ifdef HAS_SFX
-	/* allocate sound ram (14x 256-byte blocks) */
-	spcAllocateSoundRegion(14);
+	/* allocate sound ram (18x 256-byte blocks) */
+	spcAllocateSoundRegion(18);
+#endif /* HAS_SFX */
+
+#ifdef HAS_SFX
+	/* load sound effect */
+	spcSetSoundEntry(15, 7, 5, (sfx1End - sfx1), sfx1, sfx1Sample);
+	sfx1Playing = 0;
 #endif /* HAS_SFX */
 
 #ifdef HAS_BGM
 	/* load the background music using the ID defined in `bgm1.h` */
 	spcLoad(MOD_BGM1);
 #endif /* HAS_BGM */
-#ifdef HAS_SFX
-	/* load sound effect */
-	spcSetSoundEntry(13, 7, 5, (sfx1End - sfx1), sfx1, sfx1Sample);
-#endif /* HAS_SFX */
 
 	/* SNES background layer map for the background with two pages of 32x32 tiles */
 	bgSetMapPtr(BG_NR, WORD_OFFSET(MAP_VRAM_BG), SC_64x32);
@@ -2165,7 +2195,6 @@ int main(void) {
 
 	/* enable screen */
 	setScreenOn();
-
 	/* start BGM with little volume */
 #ifdef HAS_BGM
 	spcSetModuleVolume(BGM_NORMAL_VOL);
@@ -2181,6 +2210,7 @@ int main(void) {
 	maxBombs = DEF_MAX_BOMBS;
 	maxRange = DEF_MAX_RANGE;
 	for (;;) {
+		/* scanPads() gets called in consoleVblank() which is registered as NMI handler */
 		pad0 = padsCurrent(0);
 		pad1 = padsCurrent(1);
 		ASSERT_ARY_IDX(screenHandler, screen);
